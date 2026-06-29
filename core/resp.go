@@ -1,6 +1,23 @@
 package core
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
+
+func DecodeArrayString(data []byte) ([]string, error) {
+	value, err := Decode(data)
+	if err != nil {
+		return nil, err
+	}
+
+	ts := value.([]any)
+	tokens := make([]string, len(ts))
+	for i := range tokens {
+		tokens[i] = ts[i].(string)
+	}
+	return tokens, nil
+}
 
 func Decode(data []byte) (any, error) {
 	if len(data) == 0 {
@@ -105,4 +122,16 @@ func readSimpleString(data []byte) (any, int, error) {
 	}
 
 	return string(data[1:pos]), pos + 2, nil
+}
+
+func Encode(value any, isSimple bool) []byte {
+	switch v := value.(type) {
+	case string:
+		if isSimple {
+			return []byte(fmt.Sprintf("+%s\r\n", v))
+		}
+		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
+	}
+
+	return []byte{}
 }
