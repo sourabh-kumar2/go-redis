@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/sourabh-kumar2/go-redis/config"
+	"github.com/sourabh-kumar2/go-redis/server"
 )
 
 func setupFlags() {
@@ -17,4 +18,6 @@ func main() {
 	setupFlags()
 
 	log.Println("rolling the server")
+
+	server.RunTCPSyncServer()
 }
