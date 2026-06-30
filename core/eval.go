@@ -1,6 +1,9 @@
 package core
 
-import "io"
+import (
+	"errors"
+	"io"
+)
 
 func EvalAndRespond(cmd *RedisCmd, c io.Writer) error {
 	switch cmd.Cmd {
@@ -12,7 +15,9 @@ func EvalAndRespond(cmd *RedisCmd, c io.Writer) error {
 		return evalGET(cmd.Args, c)
 	case "TTL":
 		return evalTTL(cmd.Args, c)
+	case "DEL":
+		return evalDel(cmd.Args, c)
 	default:
-		return evalPING(cmd.Args, c)
+		return errors.New("ERR unknown command")
 	}
 }

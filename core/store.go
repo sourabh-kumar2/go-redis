@@ -1,14 +1,8 @@
 package core
 
-import (
-	"sync"
-	"time"
-)
+import "time"
 
-var (
-	mu    sync.RWMutex
-	store map[string]*Obj
-)
+var store map[string]*Obj
 
 func init() {
 	store = make(map[string]*Obj)
@@ -32,13 +26,17 @@ func NewObj(value any, durationMs int64) *Obj {
 }
 
 func Put(k string, obj *Obj) {
-	mu.Lock()
-	defer mu.Unlock()
 	store[k] = obj
 }
 
 func Get(k string) *Obj {
-	mu.RLock()
-	defer mu.RUnlock()
 	return store[k]
+}
+
+func Del(k string) bool {
+	if _, ok := store[k]; ok {
+		delete(store, k)
+		return true
+	}
+	return false
 }
