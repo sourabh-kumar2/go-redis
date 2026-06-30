@@ -2,10 +2,10 @@ package core
 
 import (
 	"errors"
-	"net"
+	"io"
 )
 
-func EvalAndRespond(cmd *RedisCmd, c net.Conn) error {
+func EvalAndRespond(cmd *RedisCmd, c io.Writer) error {
 	switch cmd.Cmd {
 	case "PING":
 		return evalPING(cmd.Args, c)
@@ -14,7 +14,7 @@ func EvalAndRespond(cmd *RedisCmd, c net.Conn) error {
 	}
 }
 
-func evalPING(args []string, c net.Conn) error {
+func evalPING(args []string, c io.Writer) error {
 	var b []byte
 
 	switch len(args) {
