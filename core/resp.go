@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+const RESP_NIL = "$-1\r\n"
+
 func DecodeArrayString(data []byte) ([]string, error) {
 	value, err := Decode(data)
 	if err != nil {
@@ -131,6 +133,8 @@ func Encode(value any, isSimple bool) []byte {
 			return []byte(fmt.Sprintf("+%s\r\n", v))
 		}
 		return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
+	case int, int8, int16, int32, int64:
+		return []byte(fmt.Sprintf(":%d\r\n", v))
 	}
 
 	return []byte{}
