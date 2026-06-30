@@ -19,5 +19,7 @@ func main() {
 
 	log.Println("rolling the server")
 
-	server.RunTCPSyncServer()
+	if err := server.RunTCPAsyncServer(); err != nil {
+		log.Fatal(err)
+	}
 }

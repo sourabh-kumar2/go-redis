@@ -53,17 +53,12 @@ func RunTCPSyncServer() {
 }
 
 func readCommand(c net.Conn) (*core.RedisCmd, error) {
-	// TODO: max read at one time is 512 bytes
-	// to allow input > 512 bytes, then repeated read until
-	// we get EOF or designated delimiter
-
-	buf := make([]byte, 512)
-	n, err := c.Read(buf[:])
+	data, err := readAllSync(c)
 	if err != nil {
 		return nil, err
 	}
 
-	tokens, err := core.DecodeArrayString(buf[:n])
+	tokens, err := core.DecodeArrayString(data)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +67,28 @@ func readCommand(c net.Conn) (*core.RedisCmd, error) {
 		Cmd:  strings.ToUpper(tokens[0]),
 		Args: tokens[1:],
 	}, nil
+}
+
+// readAllSync reads in 512-byte chunks until a short read (the client has
+// stopped sending for now) or EOF, so a command isn't truncated at 512 bytes.
+func readAllSync(c net.Conn) ([]byte, error) {
+	var data []byte
+	chunk := make([]byte, 512)
+	for {
+		n, err := c.Read(chunk)
+		if n > 0 {
+			data = append(data, chunk[:n]...)
+		}
+		if err != nil {
+			if err == io.EOF && len(data) > 0 {
+				return data, nil
+			}
+			return data, err
+		}
+		if n < len(chunk) {
+			return data, nil
+		}
+	}
 }
 
 func respond(cmd *core.RedisCmd, c net.Conn) {
