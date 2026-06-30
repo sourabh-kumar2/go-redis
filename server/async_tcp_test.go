@@ -10,10 +10,10 @@ type mockPoller struct {
 	removed []int
 }
 
-func (p *mockPoller) Add(fd int) error         { return nil }
-func (p *mockPoller) Remove(fd int) error      { p.removed = append(p.removed, fd); return nil }
-func (p *mockPoller) Wait() ([]Event, error)   { return nil, nil }
-func (p *mockPoller) Close() error             { return nil }
+func (p *mockPoller) Add(fd int) error       { return nil }
+func (p *mockPoller) Remove(fd int) error    { p.removed = append(p.removed, fd); return nil }
+func (p *mockPoller) Wait() ([]Event, error) { return nil, nil }
+func (p *mockPoller) Close() error           { return nil }
 
 // socketPair returns (clientFD, serverFD). serverFD is non-blocking, matching
 // how the async server configures accepted connections.
@@ -39,8 +39,8 @@ func TestReadAll(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name   string
-		input  string
+		name  string
+		input string
 	}{
 		{"ping command", "*1\r\n$4\r\nPING\r\n"},
 		{"set command", "*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n"},

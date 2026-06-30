@@ -17,6 +17,8 @@ func EvalAndRespond(cmd *RedisCmd, c io.Writer) error {
 		return evalTTL(cmd.Args, c)
 	case "DEL":
 		return evalDel(cmd.Args, c)
+	case "EXPIRE":
+		return evalExpire(cmd.Args, c)
 	default:
 		return errors.New("ERR unknown command")
 	}
