@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"io"
-	"log"
 	"time"
 )
 
@@ -19,7 +18,6 @@ func evalTTL(args []string, c io.Writer) error {
 		_, err := c.Write(Encode(-2, false))
 		return err
 	}
-	log.Println("ttl", obj)
 
 	if obj.ExpiresAt == -1 {
 		_, err := c.Write(Encode(-1, false))
@@ -27,8 +25,6 @@ func evalTTL(args []string, c io.Writer) error {
 	}
 
 	durationMs := obj.ExpiresAt - time.Now().UnixMilli()
-
-	log.Println("duration", durationMs)
 
 	if durationMs < 0 {
 		_, err := c.Write(Encode(-2, false))
