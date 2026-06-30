@@ -5,12 +5,15 @@ import (
 	"net"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/sourabh-kumar2/go-redis/config"
 	"github.com/sourabh-kumar2/go-redis/core"
 )
 
 var con_clients uint = 0
+var cronFrequency time.Duration = 1 * time.Second
+var lastCronExecTime time.Time = time.Now()
 
 func RunTCPAsyncServer() error {
 	log.Println("starting the asynchronous server on", config.Host, config.Port)
@@ -56,6 +59,11 @@ func RunTCPAsyncServer() error {
 	clients := make(map[int]*fdConn)
 
 	for {
+		if time.Now().After(lastCronExecTime.Add(cronFrequency)) {
+			core.DeleteExpiredKeys()
+			lastCronExecTime = time.Now()
+		}
+
 		events, err := poller.Wait()
 		if err != nil {
 			return err
