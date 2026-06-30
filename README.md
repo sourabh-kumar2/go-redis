@@ -6,7 +6,7 @@ A Redis-compatible in-memory key-value store written in Go, built from scratch f
 
 - **Async TCP server** — event-driven I/O via `kqueue`/`epoll`, supports up to 20,000 concurrent clients
 - **RESP protocol** — compatible with `redis-cli` and any standard Redis client
-- **Key expiry** — per-key TTL support via `SET ... EX` and `EXPIRE`
+- **Key expiry** — per-key TTL support via `SET ... EX` and `EXPIRE`, with passive (on-read) and active (background cron) eviction of expired keys
 - **Single-threaded event loop** — all client I/O and command execution runs on one goroutine; no locks needed
 
 ## Supported Commands
@@ -28,11 +28,12 @@ A Redis-compatible in-memory key-value store written in Go, built from scratch f
 ├── config/
 │   └── config.go        # Host/port configuration (default: 0.0.0.0:7379)
 ├── core/
-│   ├── store.go         # In-memory key-value store with TTL support
-│   ├── resp.go          # RESP encoder/decoder
-│   ├── cmd.go           # RedisCmd type
-│   ├── eval.go          # Command dispatcher
-│   └── eval_*.go        # Per-command handlers and tests
+│   ├── store.go               # In-memory key-value store with TTL support
+│   ├── delete_expired_keys.go # Active (background) expired-key eviction sampling
+│   ├── resp.go                # RESP encoder/decoder
+│   ├── cmd.go                 # RedisCmd type
+│   ├── eval.go                # Command dispatcher
+│   └── eval_*.go              # Per-command handlers and tests
 └── server/
     ├── async_tcp.go     # Non-blocking TCP server (main server)
     ├── sync_tcp.go      # Blocking TCP server (reference implementation)
