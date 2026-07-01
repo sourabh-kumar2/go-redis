@@ -7,7 +7,8 @@ A Redis-compatible in-memory key-value store written in Go, built from scratch f
 - **Async TCP server** — event-driven I/O via `kqueue`/`epoll`, supports up to 20,000 concurrent clients
 - **RESP protocol** — compatible with `redis-cli` and any standard Redis client
 - **Key expiry** — per-key TTL support via `SET ... EX` and `EXPIRE`, with passive (on-read) and active (background cron) eviction of expired keys
-- **Single-threaded event loop** — all client I/O and command execution runs on one goroutine; no locks needed
+- **Key limit & eviction** — store is capped at 1,048,576 keys (`config.KeysLimit`); evicts a key on every `SET` that would exceed the limit
+- **Mutex-protected store** — `sync.RWMutex` guards all store reads and writes for safe concurrent access
 
 ## Supported Commands
 
@@ -26,10 +27,11 @@ A Redis-compatible in-memory key-value store written in Go, built from scratch f
 .
 ├── main.go              # Entry point; parses --host and --port flags
 ├── config/
-│   └── config.go        # Host/port configuration (default: 0.0.0.0:7379)
+│   └── config.go        # Host/port/key-limit configuration (default: 0.0.0.0:7379, limit: 1M keys)
 ├── core/
-│   ├── store.go               # In-memory key-value store with TTL support
-│   ├── delete_expired_keys.go # Active (background) expired-key eviction sampling
+│   ├── store.go               # In-memory key-value store (RWMutex-protected)
+│   ├── eviction.go            # Eviction logic (evicts first key found when store is full)
+│   ├── delete_expired_keys.go # Active (background) expired-key eviction via sampling
 │   ├── resp.go                # RESP encoder/decoder
 │   ├── cmd.go                 # RedisCmd type
 │   ├── eval.go                # Command dispatcher
