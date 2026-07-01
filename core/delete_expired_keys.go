@@ -12,12 +12,15 @@ func DeleteExpiredKeys() {
 			break
 		}
 	}
-	log.Println("deleted the expired but undeleted keys. total keys", len(store))
+	log.Println("deleted the expired but undeleted keys. total keys", StoreSize())
 }
 
 func expireSample() float32 {
 	var limit int = 20
 	var expiredCount int
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	for key, obj := range store {
 		if obj.ExpiresAt == -1 {
