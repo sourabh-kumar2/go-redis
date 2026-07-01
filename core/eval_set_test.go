@@ -3,10 +3,14 @@ package core
 import (
 	"bytes"
 	"testing"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 func TestEvalSET(t *testing.T) {
 	t.Parallel()
+
+	s := store.New()
 
 	cases := []struct {
 		name    string
@@ -27,7 +31,7 @@ func TestEvalSET(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var buf bytes.Buffer
-			err := evalSET(tc.args, &buf)
+			err := evalSET(tc.args, &buf, s)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

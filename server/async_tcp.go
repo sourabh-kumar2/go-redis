@@ -9,6 +9,7 @@ import (
 
 	"github.com/sourabh-kumar2/go-redis/config"
 	"github.com/sourabh-kumar2/go-redis/core"
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 var con_clients uint = 0
@@ -19,6 +20,8 @@ func RunTCPAsyncServer() error {
 	log.Println("starting the asynchronous server on", config.Host, config.Port)
 
 	max_clients := 20_000
+
+	s := store.New()
 
 	// create a socket
 	serverFD, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, 0)
@@ -60,7 +63,7 @@ func RunTCPAsyncServer() error {
 
 	for {
 		if time.Now().After(lastCronExecTime.Add(cronFrequency)) {
-			core.DeleteExpiredKeys()
+			s.DeleteExpiredKeys()
 			lastCronExecTime = time.Now()
 		}
 
@@ -75,7 +78,7 @@ func RunTCPAsyncServer() error {
 				continue
 			}
 			if ev.Readable {
-				handleClient(ev.Fd, poller, clients)
+				handleClient(ev.Fd, poller, clients, s)
 			}
 		}
 	}
@@ -111,7 +114,7 @@ func acceptClients(serverFD int, poller Poller, clients map[int]*fdConn) {
 	}
 }
 
-func handleClient(fd int, poller Poller, clients map[int]*fdConn) {
+func handleClient(fd int, poller Poller, clients map[int]*fdConn, s *store.Store) {
 	conn, ok := clients[fd]
 	if !ok {
 		return
@@ -144,7 +147,7 @@ func handleClient(fd int, poller Poller, clients map[int]*fdConn) {
 		Args: tokens[1:],
 	}
 
-	if err := core.EvalAndRespond(cmd, conn); err != nil {
+	if err := core.EvalAndRespond(cmd, conn, s); err != nil {
 		conn.Write([]byte("-" + err.Error() + "\r\n"))
 	}
 }

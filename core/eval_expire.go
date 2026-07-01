@@ -5,9 +5,11 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
-func evalExpire(args []string, c io.Writer) error {
+func evalExpire(args []string, c io.Writer, s *store.Store) error {
 	if len(args) <= 1 {
 		return errors.New("ERR wrong number of arguments for 'expire' command")
 	}
@@ -17,7 +19,7 @@ func evalExpire(args []string, c io.Writer) error {
 		return errors.New("ERR value is not an integer or out of range")
 	}
 
-	obj := Get(key)
+	obj := s.Get(key)
 	if obj == nil {
 		_, err = c.Write(Encode(0, false))
 		return err

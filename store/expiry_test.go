@@ -1,4 +1,4 @@
-package core
+package store
 
 import (
 	"testing"
@@ -8,22 +8,22 @@ import (
 func TestExpireSample(t *testing.T) {
 	cases := []struct {
 		name        string
-		setup       func(prefix string)
+		setup       func(s *Store, prefix string)
 		wantMinFrac float32
 		wantMaxFrac float32
 		wantRemoved func(prefix string) []string
 	}{
 		{
 			name:        "no keys returns zero fraction",
-			setup:       func(prefix string) {},
+			setup:       func(s *Store, prefix string) {},
 			wantMinFrac: 0,
 			wantMaxFrac: 0,
 		},
 		{
 			name: "all persistent keys returns zero fraction",
-			setup: func(prefix string) {
+			setup: func(s *Store, prefix string) {
 				for i := 0; i < 5; i++ {
-					Put(prefix+string(rune('a'+i)), NewObj("v", -1))
+					s.Put(prefix+string(rune('a'+i)), NewObj("v", -1))
 				}
 			},
 			wantMinFrac: 0,
@@ -31,10 +31,10 @@ func TestExpireSample(t *testing.T) {
 		},
 		{
 			name: "all expired keys returns non-zero fraction",
-			setup: func(prefix string) {
+			setup: func(s *Store, prefix string) {
 				for i := 0; i < 5; i++ {
 					obj := &Obj{Value: "v", ExpiresAt: time.Now().UnixMilli() - 1}
-					Put(prefix+string(rune('a'+i)), obj)
+					s.Put(prefix+string(rune('a'+i)), obj)
 				}
 			},
 			wantMinFrac: 0.01,
@@ -49,8 +49,8 @@ func TestExpireSample(t *testing.T) {
 		},
 		{
 			name: "future-expiry keys are not deleted",
-			setup: func(prefix string) {
-				Put(prefix+"live", NewObj("v", 60000))
+			setup: func(s *Store, prefix string) {
+				s.Put(prefix+"live", NewObj("v", 60000))
 			},
 			wantMinFrac: 0,
 			wantMaxFrac: 0,
@@ -59,10 +59,11 @@ func TestExpireSample(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			s := New()
 			prefix := "expireSample:" + t.Name() + ":"
-			tc.setup(prefix)
+			tc.setup(s, prefix)
 
-			frac := expireSample()
+			frac := s.expireSample()
 
 			if frac < tc.wantMinFrac || frac > tc.wantMaxFrac {
 				t.Fatalf("fraction %v not in [%v, %v]", frac, tc.wantMinFrac, tc.wantMaxFrac)
@@ -70,7 +71,7 @@ func TestExpireSample(t *testing.T) {
 
 			if tc.wantRemoved != nil {
 				for _, key := range tc.wantRemoved(prefix) {
-					if Get(key) != nil {
+					if s.Get(key) != nil {
 						t.Fatalf("expected key %q to be deleted but it still exists", key)
 					}
 				}
@@ -82,16 +83,16 @@ func TestExpireSample(t *testing.T) {
 func TestDeleteExpiredKeys(t *testing.T) {
 	cases := []struct {
 		name         string
-		setup        func(prefix string)
+		setup        func(s *Store, prefix string)
 		wantDeleted  func(prefix string) []string
 		wantSurvived func(prefix string) []string
 	}{
 		{
 			name: "expired keys are removed",
-			setup: func(prefix string) {
+			setup: func(s *Store, prefix string) {
 				for i := 0; i < 5; i++ {
 					obj := &Obj{Value: "v", ExpiresAt: time.Now().UnixMilli() - 1}
-					Put(prefix+string(rune('a'+i)), obj)
+					s.Put(prefix+string(rune('a'+i)), obj)
 				}
 			},
 			wantDeleted: func(prefix string) []string {
@@ -104,8 +105,8 @@ func TestDeleteExpiredKeys(t *testing.T) {
 		},
 		{
 			name: "persistent keys survive",
-			setup: func(prefix string) {
-				Put(prefix+"keep", NewObj("v", -1))
+			setup: func(s *Store, prefix string) {
+				s.Put(prefix+"keep", NewObj("v", -1))
 			},
 			wantSurvived: func(prefix string) []string {
 				return []string{prefix + "keep"}
@@ -113,8 +114,8 @@ func TestDeleteExpiredKeys(t *testing.T) {
 		},
 		{
 			name: "future-expiry keys survive",
-			setup: func(prefix string) {
-				Put(prefix+"future", NewObj("v", 60000))
+			setup: func(s *Store, prefix string) {
+				s.Put(prefix+"future", NewObj("v", 60000))
 			},
 			wantSurvived: func(prefix string) []string {
 				return []string{prefix + "future"}
@@ -124,21 +125,22 @@ func TestDeleteExpiredKeys(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			s := New()
 			prefix := "deleteExpired:" + t.Name() + ":"
-			tc.setup(prefix)
+			tc.setup(s, prefix)
 
-			DeleteExpiredKeys()
+			s.DeleteExpiredKeys()
 
 			if tc.wantDeleted != nil {
 				for _, key := range tc.wantDeleted(prefix) {
-					if Get(key) != nil {
+					if s.Get(key) != nil {
 						t.Fatalf("expected key %q to be deleted but it still exists", key)
 					}
 				}
 			}
 			if tc.wantSurvived != nil {
 				for _, key := range tc.wantSurvived(prefix) {
-					if Get(key) == nil {
+					if s.Get(key) == nil {
 						t.Fatalf("expected key %q to survive but it was deleted", key)
 					}
 				}

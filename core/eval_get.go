@@ -4,15 +4,17 @@ import (
 	"errors"
 	"io"
 	"time"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
-func evalGET(args []string, c io.Writer) error {
+func evalGET(args []string, c io.Writer, s *store.Store) error {
 	if len(args) != 1 {
 		return errors.New("ERR wrong number of arguments for 'get' command")
 	}
 
 	key := args[0]
-	obj := Get(key)
+	obj := s.Get(key)
 	if obj == nil {
 		_, err := c.Write([]byte(RESP_NIL))
 		return err

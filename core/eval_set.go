@@ -4,9 +4,11 @@ import (
 	"errors"
 	"io"
 	"strconv"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
-func evalSET(args []string, c io.Writer) error {
+func evalSET(args []string, c io.Writer, s *store.Store) error {
 	if len(args) <= 1 {
 		return errors.New("ERR wrong number of arguments for 'set' command")
 	}
@@ -34,7 +36,7 @@ func evalSET(args []string, c io.Writer) error {
 		}
 	}
 
-	Put(key, NewObj(value, exDurationMs))
+	s.Put(key, store.NewObj(value, exDurationMs))
 
 	_, err := c.Write(Encode("OK", true))
 	return err

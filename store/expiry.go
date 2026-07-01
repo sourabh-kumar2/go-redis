@@ -1,35 +1,35 @@
-package core
+package store
 
 import (
 	"log"
 	"time"
 )
 
-func DeleteExpiredKeys() {
+func (s *Store) DeleteExpiredKeys() {
 	for {
-		frac := expireSample()
+		frac := s.expireSample()
 		if frac < 0.25 {
 			break
 		}
 	}
-	log.Println("deleted the expired but undeleted keys. total keys", StoreSize())
+	log.Println("deleted the expired but undeleted keys. total keys", s.Size())
 }
 
-func expireSample() float32 {
+func (s *Store) expireSample() float32 {
 	var limit int = 20
 	var expiredCount int
 
-	mu.Lock()
-	defer mu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	for key, obj := range store {
+	for key, obj := range s.items {
 		if obj.ExpiresAt == -1 {
 			continue
 		}
 
 		limit--
 		if obj.ExpiresAt <= time.Now().UnixMilli() {
-			delete(store, key)
+			delete(s.items, key)
 			expiredCount++
 		}
 		if limit == 0 {

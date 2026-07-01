@@ -10,6 +10,7 @@ import (
 
 	"github.com/sourabh-kumar2/go-redis/config"
 	"github.com/sourabh-kumar2/go-redis/core"
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 func RunTCPSyncServer() {
@@ -17,13 +18,13 @@ func RunTCPSyncServer() {
 
 	var con_clients uint
 
-	// listening to configured host and port
+	s := store.New()
+
 	lsnr, err := net.Listen("tcp", config.Host+":"+strconv.Itoa(config.Port))
 	if err != nil {
 		panic(err)
 	}
 	for {
-		// blocking call: waiting for the new client to connect
 		c, err := lsnr.Accept()
 		if err != nil {
 			panic(err)
@@ -33,7 +34,6 @@ func RunTCPSyncServer() {
 		log.Println("client connected with address:", c.RemoteAddr(), "concurrent clients", con_clients)
 
 		for {
-			// over the socket: continuously read the command and print it out
 			cmd, err := readCommand(c)
 			if err != nil {
 				c.Close()
@@ -46,10 +46,9 @@ func RunTCPSyncServer() {
 				log.Println("err", err)
 			}
 
-			respond(cmd, c)
+			respond(cmd, c, s)
 		}
 	}
-
 }
 
 func readCommand(c net.Conn) (*core.RedisCmd, error) {
@@ -91,12 +90,11 @@ func readAllSync(c net.Conn) ([]byte, error) {
 	}
 }
 
-func respond(cmd *core.RedisCmd, c net.Conn) {
-	err := core.EvalAndRespond(cmd, c)
+func respond(cmd *core.RedisCmd, c net.Conn, s *store.Store) {
+	err := core.EvalAndRespond(cmd, c, s)
 	if err != nil {
 		respondError(err, c)
 	}
-
 }
 
 func respondError(err error, c net.Conn) {

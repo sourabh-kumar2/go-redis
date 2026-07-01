@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sourabh-kumar2/go-redis/core"
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 // pipe returns a connected client/server net.Conn pair and registers cleanup.
@@ -168,7 +169,7 @@ func TestRespond(t *testing.T) {
 				done <- string(buf[:n])
 			}()
 
-			respond(tc.cmd, server)
+			respond(tc.cmd, server, store.New())
 
 			if got := <-done; got != tc.wantResp {
 				t.Fatalf("got %q, want %q", got, tc.wantResp)

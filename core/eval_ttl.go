@@ -4,15 +4,17 @@ import (
 	"errors"
 	"io"
 	"time"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
-func evalTTL(args []string, c io.Writer) error {
+func evalTTL(args []string, c io.Writer, s *store.Store) error {
 	if len(args) != 1 {
 		return errors.New("ERR wrong number of arguments for 'get' command")
 	}
 
 	key := args[0]
-	obj := Get(key)
+	obj := s.Get(key)
 
 	if obj == nil {
 		_, err := c.Write(Encode(-2, false))

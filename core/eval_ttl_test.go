@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"testing"
 	"time"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 func TestEvalTTL(t *testing.T) {
 	t.Parallel()
+
+	s := store.New()
 
 	cases := []struct {
 		name    string
@@ -23,23 +27,23 @@ func TestEvalTTL(t *testing.T) {
 		{
 			name: "key with no expiry returns -1",
 			setup: func(key string) {
-				Put(key, NewObj("val", -1))
+				s.Put(key, store.NewObj("val", -1))
 			},
 			want: ":-1\r\n",
 		},
 		{
 			name: "key with future expiry returns remaining seconds",
 			setup: func(key string) {
-				obj := &Obj{Value: "val", ExpiresAt: time.Now().UnixMilli() + 5000}
-				Put(key, obj)
+				obj := &store.Obj{Value: "val", ExpiresAt: time.Now().UnixMilli() + 5000}
+				s.Put(key, obj)
 			},
 			want: ":5\r\n",
 		},
 		{
 			name: "already expired key returns -2",
 			setup: func(key string) {
-				obj := &Obj{Value: "val", ExpiresAt: time.Now().UnixMilli() - 1000}
-				Put(key, obj)
+				obj := &store.Obj{Value: "val", ExpiresAt: time.Now().UnixMilli() - 1000}
+				s.Put(key, obj)
 			},
 			want: ":-2\r\n",
 		},
@@ -65,7 +69,7 @@ func TestEvalTTL(t *testing.T) {
 			}
 
 			var buf bytes.Buffer
-			err := evalTTL(args, &buf)
+			err := evalTTL(args, &buf, s)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")

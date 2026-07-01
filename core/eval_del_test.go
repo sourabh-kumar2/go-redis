@@ -3,10 +3,14 @@ package core
 import (
 	"bytes"
 	"testing"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 func TestEvalDel(t *testing.T) {
 	t.Parallel()
+
+	s := store.New()
 
 	cases := []struct {
 		name    string
@@ -24,7 +28,7 @@ func TestEvalDel(t *testing.T) {
 		{
 			name: "delete existing key returns 1",
 			setup: func(prefix string) {
-				Put(prefix+"k1", NewObj("v1", -1))
+				s.Put(prefix+"k1", store.NewObj("v1", -1))
 			},
 			args: func(prefix string) []string { return []string{prefix + "k1"} },
 			want: ":1\r\n",
@@ -38,9 +42,9 @@ func TestEvalDel(t *testing.T) {
 		{
 			name: "delete multiple existing keys returns count",
 			setup: func(prefix string) {
-				Put(prefix+"a", NewObj("1", -1))
-				Put(prefix+"b", NewObj("2", -1))
-				Put(prefix+"c", NewObj("3", -1))
+				s.Put(prefix+"a", store.NewObj("1", -1))
+				s.Put(prefix+"b", store.NewObj("2", -1))
+				s.Put(prefix+"c", store.NewObj("3", -1))
 			},
 			args: func(prefix string) []string {
 				return []string{prefix + "a", prefix + "b", prefix + "c"}
@@ -50,7 +54,7 @@ func TestEvalDel(t *testing.T) {
 		{
 			name: "delete mix of existing and missing keys counts only existing",
 			setup: func(prefix string) {
-				Put(prefix+"exists", NewObj("val", -1))
+				s.Put(prefix+"exists", store.NewObj("val", -1))
 			},
 			args: func(prefix string) []string {
 				return []string{prefix + "exists", prefix + "ghost"}
@@ -60,7 +64,7 @@ func TestEvalDel(t *testing.T) {
 		{
 			name: "delete same key twice counts only first deletion",
 			setup: func(prefix string) {
-				Put(prefix+"dup", NewObj("v", -1))
+				s.Put(prefix+"dup", store.NewObj("v", -1))
 			},
 			args: func(prefix string) []string {
 				return []string{prefix + "dup", prefix + "dup"}
@@ -70,7 +74,7 @@ func TestEvalDel(t *testing.T) {
 		{
 			name: "deleted key is no longer retrievable",
 			setup: func(prefix string) {
-				Put(prefix+"gone", NewObj("v", -1))
+				s.Put(prefix+"gone", store.NewObj("v", -1))
 			},
 			args: func(prefix string) []string { return []string{prefix + "gone"} },
 			want: ":1\r\n",
@@ -84,7 +88,7 @@ func TestEvalDel(t *testing.T) {
 			tc.setup(prefix)
 
 			var buf bytes.Buffer
-			err := evalDel(tc.args(prefix), &buf)
+			err := evalDel(tc.args(prefix), &buf, s)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -104,15 +108,16 @@ func TestEvalDel(t *testing.T) {
 func TestEvalDelRemovesKey(t *testing.T) {
 	t.Parallel()
 
+	s := store.New()
 	key := "del:remove:" + t.Name()
-	Put(key, NewObj("val", -1))
+	s.Put(key, store.NewObj("val", -1))
 
 	var buf bytes.Buffer
-	if err := evalDel([]string{key}, &buf); err != nil {
+	if err := evalDel([]string{key}, &buf, s); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if obj := Get(key); obj != nil {
+	if obj := s.Get(key); obj != nil {
 		t.Fatalf("expected key %q to be deleted, but it still exists", key)
 	}
 }

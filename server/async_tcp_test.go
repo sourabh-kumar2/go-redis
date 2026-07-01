@@ -3,6 +3,8 @@ package server
 import (
 	"syscall"
 	"testing"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 // mockPoller satisfies the Poller interface without touching the OS event queue.
@@ -119,7 +121,7 @@ func TestHandleClient(t *testing.T) {
 			}
 
 			clients := map[int]*fdConn{serverFD: {fd: serverFD}}
-			handleClient(serverFD, &mockPoller{}, clients)
+			handleClient(serverFD, &mockPoller{}, clients, store.New())
 
 			buf := make([]byte, 512)
 			n, err := syscall.Read(clientFD, buf)
@@ -139,5 +141,5 @@ func TestHandleClientUnknownFD(t *testing.T) {
 	_, serverFD := socketPair(t)
 
 	// fd not in clients map — handleClient must return silently.
-	handleClient(serverFD, &mockPoller{}, map[int]*fdConn{})
+	handleClient(serverFD, &mockPoller{}, map[int]*fdConn{}, store.New())
 }

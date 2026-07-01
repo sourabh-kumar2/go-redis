@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"testing"
 	"time"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 func TestEvalExpire(t *testing.T) {
 	t.Parallel()
+
+	s := store.New()
 
 	cases := []struct {
 		name    string
@@ -43,7 +47,7 @@ func TestEvalExpire(t *testing.T) {
 		{
 			name: "existing key gets expiry set and returns 1",
 			setup: func(prefix string) {
-				Put(prefix+"k", NewObj("val", -1))
+				s.Put(prefix+"k", store.NewObj("val", -1))
 			},
 			args: func(prefix string) []string { return []string{prefix + "k", "10"} },
 			want: ":1\r\n",
@@ -51,7 +55,7 @@ func TestEvalExpire(t *testing.T) {
 		{
 			name: "zero duration sets key to expire immediately",
 			setup: func(prefix string) {
-				Put(prefix+"k", NewObj("val", -1))
+				s.Put(prefix+"k", store.NewObj("val", -1))
 			},
 			args: func(prefix string) []string { return []string{prefix + "k", "0"} },
 			want: ":1\r\n",
@@ -65,7 +69,7 @@ func TestEvalExpire(t *testing.T) {
 			tc.setup(prefix)
 
 			var buf bytes.Buffer
-			err := evalExpire(tc.args(prefix), &buf)
+			err := evalExpire(tc.args(prefix), &buf, s)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -85,17 +89,18 @@ func TestEvalExpire(t *testing.T) {
 func TestEvalExpireSetsExpiresAt(t *testing.T) {
 	t.Parallel()
 
+	s := store.New()
 	key := "expire:expiresAt:" + t.Name()
-	Put(key, NewObj("val", -1))
+	s.Put(key, store.NewObj("val", -1))
 
 	before := time.Now().UnixMilli()
 	var buf bytes.Buffer
-	if err := evalExpire([]string{key, "5"}, &buf); err != nil {
+	if err := evalExpire([]string{key, "5"}, &buf, s); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	after := time.Now().UnixMilli()
 
-	obj := Get(key)
+	obj := s.Get(key)
 	if obj == nil {
 		t.Fatal("key unexpectedly missing after expire")
 	}

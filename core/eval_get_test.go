@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"testing"
 	"time"
+
+	"github.com/sourabh-kumar2/go-redis/store"
 )
 
 func TestEvalGET(t *testing.T) {
 	t.Parallel()
+
+	s := store.New()
 
 	cases := []struct {
 		name    string
@@ -23,23 +27,23 @@ func TestEvalGET(t *testing.T) {
 		{
 			name: "existing key returns bulk string",
 			setup: func(key string) {
-				Put(key, NewObj("world", -1))
+				s.Put(key, store.NewObj("world", -1))
 			},
 			want: "$5\r\nworld\r\n",
 		},
 		{
 			name: "expired key returns nil",
 			setup: func(key string) {
-				obj := NewObj("ghost", 1)
+				obj := store.NewObj("ghost", 1)
 				obj.ExpiresAt = time.Now().UnixMilli() - 1
-				Put(key, obj)
+				s.Put(key, obj)
 			},
 			want: RESP_NIL,
 		},
 		{
 			name: "key with future expiry returns value",
 			setup: func(key string) {
-				Put(key, NewObj("alive", 60000))
+				s.Put(key, store.NewObj("alive", 60000))
 			},
 			want: "$5\r\nalive\r\n",
 		},
@@ -59,13 +63,13 @@ func TestEvalGET(t *testing.T) {
 
 			var args []string
 			if tc.wantErr {
-				args = []string{} // zero args triggers the error
+				args = []string{}
 			} else {
 				args = []string{key}
 			}
 
 			var buf bytes.Buffer
-			err := evalGET(args, &buf)
+			err := evalGET(args, &buf, s)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
